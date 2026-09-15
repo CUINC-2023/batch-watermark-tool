@@ -89,8 +89,8 @@ class ProApp(EnhancedApp):
             # Preview controls are spread over two rows instead of being clipped.
             center=self.canvas.master.master
             preview_bar=center.winfo_children()[0]
+            for w in preview_bar.winfo_children(): w.pack_forget()
             for w in preview_bar.winfo_children():
-                w.pack_forget()
                 if isinstance(w,ttk.Label): w.grid(row=0,column=0,sticky='w')
                 elif isinstance(w,ttk.Checkbutton): w.grid(row=1,column=0,columnspan=3,sticky='w')
                 elif isinstance(w,ttk.Button):
@@ -98,8 +98,8 @@ class ProApp(EnhancedApp):
                     elif w.cget('text')=='符合視窗': w.grid(row=0,column=2,padx=3)
             edit_bar=self.canvas.master.winfo_children()[-1]
             radio_column=button_column=0
+            for w in edit_bar.winfo_children(): w.pack_forget()
             for w in edit_bar.winfo_children():
-                w.pack_forget()
                 if isinstance(w,ttk.Radiobutton):
                     w.grid(row=0,column=radio_column,sticky='w');radio_column+=1
                 elif isinstance(w,ttk.Button):
