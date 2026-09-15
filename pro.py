@@ -44,8 +44,8 @@ class ProApp(EnhancedApp):
         self.max_kb = tk.DoubleVar(self, self._pending_pro.get('max_kb',0))
         self.edit_mode = tk.StringVar(self,'預覽')
         self.title(f'Batch Watermark Tool Pro v{VERSION}')
-        self.minsize(1100,720)
-        self.geometry(f'{min(1540,self.winfo_screenwidth()-40)}x{min(940,self.winfo_screenheight()-80)}')
+        self.minsize(min(960,self.winfo_screenwidth()-40),600)
+        self.geometry(f'{min(1540,self.winfo_screenwidth()-40)}x{min(940,self.winfo_screenheight()-120)}')
         toolbar = ttk.Frame(self.canvas.master)
         toolbar.pack(fill='x',before=self.canvas)
         for mode in ('預覽','裁切框','Logo'):
@@ -60,10 +60,46 @@ class ProApp(EnhancedApp):
         self.unbind('<Delete>')
         ttk.Style(self).configure('Treeview',rowheight=60)
         self._upgrade_widgets(self)
+        self._compact_layout()
         self._ready = True
         self.protocol('WM_DELETE_WINDOW',self.close)
         self.after(100,self.poll_events)
         self.preview()
+
+    def _compact_layout(self):
+        # Reserve footer controls before the expanding body on every screen size.
+        top,body,bottom,source = self.winfo_children()[:4]
+        bottom.pack_configure(side='bottom',before=body)
+        source.pack_configure(side='bottom',before=body)
+        labels=[w for w in bottom.winfo_children() if isinstance(w,ttk.Label)]
+        for w in labels: w.pack_forget()
+        for w in labels: w.pack(fill='x',side='top',before=self.progress)
+        self.progress.configure(length=120)
+        if self.winfo_screenwidth() <= 1280:
+            self.tree.column('#0',width=140,minwidth=100)
+            self.tree.column('size',width=70,minwidth=60)
+            self.tree.master.master.winfo_children()[-1].configure(wraplength=220)
+            ttk.Style(self).configure('TButton',padding=(5,4))
+            # Put the title on its own line; all import/quick actions remain reachable.
+            for w in top.winfo_children():
+                if isinstance(w,ttk.Label):
+                    w.pack_forget()
+            heading=ttk.Label(top,text='Batch Watermark Tool Pro v'+VERSION,style='Title.TLabel')
+            heading.pack(side='top',anchor='w',before=top.winfo_children()[2])
+            # Preview controls are spread over two rows instead of being clipped.
+            center=self.canvas.master.master
+            preview_bar=center.winfo_children()[0]
+            for w in preview_bar.winfo_children():
+                if isinstance(w,ttk.Checkbutton):
+                    w.pack_forget();w.pack(side='bottom',anchor='w')
+                elif isinstance(w,ttk.Button) and w.cget('text') in ('＋','－'):
+                    w.pack_forget()
+            edit_bar=self.canvas.master.winfo_children()[-1]
+            for w in edit_bar.winfo_children():
+                if isinstance(w,ttk.Button):
+                    w.pack_forget();w.pack(side='bottom',fill='x')
+            for w in source.winfo_children():
+                if isinstance(w,ttk.Label) and w.cget('text').startswith('例：'):w.pack_forget()
 
     def _upgrade_widgets(self,w):
         for child in w.winfo_children():
