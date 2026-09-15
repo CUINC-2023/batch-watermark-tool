@@ -61,6 +61,7 @@ class ProApp(EnhancedApp):
         ttk.Style(self).configure('Treeview',rowheight=60)
         self._upgrade_widgets(self)
         self._compact_layout()
+        self._scroll_settings(self)
         self._ready = True
         self.protocol('WM_DELETE_WINDOW',self.close)
         self.after(100,self.poll_events)
@@ -100,6 +101,24 @@ class ProApp(EnhancedApp):
                     w.pack_forget();w.pack(side='bottom',fill='x')
             for w in source.winfo_children():
                 if isinstance(w,ttk.Label) and w.cget('text').startswith('例：'):w.pack_forget()
+
+    def _scroll_settings(self,parent):
+        for child in parent.winfo_children():
+            if isinstance(child,ttk.Notebook):
+                pages=[(child.nametowidget(tab),child.tab(tab,'text')) for tab in child.tabs()]
+                for page,title in pages:
+                    child.forget(page)
+                    holder=ttk.Frame(child)
+                    canvas=tk.Canvas(holder,highlightthickness=0,bg='#171a1d',width=350)
+                    scrollbar=ttk.Scrollbar(holder,orient='vertical',command=canvas.yview)
+                    canvas.configure(yscrollcommand=scrollbar.set)
+                    scrollbar.pack(side='right',fill='y');canvas.pack(fill='both',expand=True)
+                    item=canvas.create_window(0,0,anchor='nw',window=page)
+                    page.bind('<Configure>',lambda e,c=canvas:c.configure(scrollregion=c.bbox('all')))
+                    canvas.bind('<Configure>',lambda e,c=canvas,i=item:c.itemconfigure(i,width=e.width))
+                    child.add(holder,text=title)
+            else:
+                self._scroll_settings(child)
 
     def _upgrade_widgets(self,w):
         for child in w.winfo_children():
