@@ -42,12 +42,17 @@ jobs:
           if ($p.ExitCode -ne 0) { throw 'EXE smoke test failed' }
           $r = Get-Content exe-smoke.json | ConvertFrom-Json
           if (-not $r.success -or -not $r.dnd_available) { throw 'EXE verification failed' }
+      - name: Print verification reports
+        if: always()
+        run: Get-Content *-smoke.json -ErrorAction SilentlyContinue
       - name: Upload verification reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Windows-verification-reports
-          path: '*-smoke.json'
+          path: |
+            *-smoke.json
+            windows-ui.png
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:

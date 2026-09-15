@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
+from unittest.mock import patch
 from types import SimpleNamespace
 from PIL import Image
 from imaging import Processor, encode_image, validate_profile
@@ -12,7 +14,7 @@ def run(app):
     report=Path(os.environ.get('WATERMARK_SMOKE_REPORT','smoke-report.json'))
     try:
         with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'photo.png';logo=Path(d)/'logo.png'
+            path=(Path(d)/'photo.png').resolve();logo=(Path(d)/'logo.png').resolve()
             Image.new('RGB',(640,480),'#345678').save(path)
             Image.new('RGBA',(100,50),(255,0,0,180)).save(logo)
             app._append([str(path)])
@@ -41,10 +43,30 @@ def run(app):
             assert im.size==(320,400)
             data=encode_image(im,'WEBP',90,max_kb=100)
             assert data[:4]==b'RIFF'
-        report.write_text(json.dumps({'success':True,'dnd_available':__import__('app').DND_AVAILABLE,'checks':['Tk startup','crop handles and drag','logo scaling and rotation','profile editor','thumbnails','WebP export']}),encoding='utf-8')
+            app.profiles={'WebP_Test':dict(c,enabled=True,max_kb=100)}
+            app.refresh_profiles()
+            app.output_to_source.set(True)
+            app.source_subfolder.set('加工後')
+            app.output_dir.set(str(Path(d)/'unused-output'))
+            with patch('pro.messagebox.showinfo'), patch('pro.messagebox.showwarning'):
+                app.export()
+                deadline=time.monotonic()+20
+                while app._busy and time.monotonic()<deadline:
+                    app.update();time.sleep(.01)
+                assert not app._busy, 'Batch worker timed out'
+            output=Path(d)/'加工後'/'WebP_Test'/'photo.webp'
+            assert output.exists(), 'Source-folder batch export missing'
+            assert not (Path(d)/'unused-output').exists()
+            assert output.stat().st_size<=102400
+            with Image.open(output) as saved: assert saved.size==(320,400)
+            from PIL import ImageGrab
+            ImageGrab.grab().save('windows-ui.png')
+        report.write_text(json.dumps({'success':True,'dnd_available':__import__('app').DND_AVAILABLE,'checks':['Tk startup','crop handles and drag','logo scaling and rotation','profile editor','thumbnails','WebP export','background batch export','source-folder destination','byte limit']}),encoding='utf-8')
         app.destroy()
     except Exception:
         import traceback
-        report.write_text(json.dumps({'success':False,'error':traceback.format_exc()}),encoding='utf-8')
+        error=traceback.format_exc()
+        if __import__('sys').stderr: print(error,file=__import__('sys').stderr,flush=True)
+        report.write_text(json.dumps({'success':False,'error':error}),encoding='utf-8')
         app.destroy()
         os._exit(1)

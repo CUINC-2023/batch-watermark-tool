@@ -295,12 +295,20 @@ class ProApp(EnhancedApp):
     def refresh_profiles(self):
         for w in self.multi_frame.winfo_children(): w.destroy()
         self.profile_vars={}
+        canvas=tk.Canvas(self.multi_frame,highlightthickness=0,bg='#171a1d',width=320)
+        scroll=ttk.Scrollbar(self.multi_frame,orient='vertical',command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side='right',fill='y');canvas.pack(side='left',fill='both',expand=True)
+        content=ttk.Frame(canvas)
+        window=canvas.create_window(0,0,anchor='nw',window=content)
+        content.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.bind('<Configure>',lambda e:canvas.itemconfigure(window,width=e.width))
         for name,c in self.profiles.items():
-            row=ttk.Frame(self.multi_frame);row.pack(fill='x',pady=3)
+            row=ttk.Frame(content);row.pack(fill='x',pady=3)
             var=tk.BooleanVar(self,c.get('enabled',False));self.profile_vars[name]=var
             ttk.Checkbutton(row,text=name,variable=var,command=self._sync_profiles).pack(side='left')
             ttk.Button(row,text='編輯',width=5,command=lambda n=name:self.edit_profile(n)).pack(side='right')
-            ttk.Label(self.multi_frame,text=f"{c.get('mode','指定長邊')} · {c.get('format','JPG')} · {c.get('max_kb',0)} KB（0 不限）",style='Muted.TLabel').pack(anchor='w')
+            ttk.Label(content,text=f"{c.get('mode','指定長邊')} · {c.get('format','JPG')} · {c.get('max_kb',0)} KB（0 不限）",style='Muted.TLabel').pack(anchor='w')
 
     def add_profile(self): self.edit_profile()
 

@@ -52,7 +52,7 @@ class ImagingTests(unittest.TestCase):
             if metadata:
                 ex=Image.Exif();ex.load(metadata);self.assertNotIn(274,ex)
             target=Path(d)/'result.webp';atomic_write(target,encode_image(im,'WEBP',92))
-            self.assertEqual(Image.open(target).format,'WEBP')
+            with Image.open(target) as saved: self.assertEqual(saved.format,'WEBP')
             self.assertEqual(len(list(Path(d).glob('.watermark-*'))),0)
 
 if __name__ == '__main__':unittest.main()
