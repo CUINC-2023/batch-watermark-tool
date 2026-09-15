@@ -61,7 +61,6 @@ class ProApp(EnhancedApp):
         ttk.Style(self).configure('Treeview',rowheight=60)
         self._upgrade_widgets(self)
         self._compact_layout()
-        self._scroll_settings(self)
         self._ready = True
         self.protocol('WM_DELETE_WINDOW',self.close)
         self.after(100,self.poll_events)
@@ -91,34 +90,23 @@ class ProApp(EnhancedApp):
             center=self.canvas.master.master
             preview_bar=center.winfo_children()[0]
             for w in preview_bar.winfo_children():
-                if isinstance(w,ttk.Checkbutton):
-                    w.pack_forget();w.pack(side='bottom',anchor='w')
-                elif isinstance(w,ttk.Button) and w.cget('text') in ('＋','－'):
-                    w.pack_forget()
+                w.pack_forget()
+                if isinstance(w,ttk.Label): w.grid(row=0,column=0,sticky='w')
+                elif isinstance(w,ttk.Checkbutton): w.grid(row=1,column=0,columnspan=3,sticky='w')
+                elif isinstance(w,ttk.Button):
+                    if w.cget('text')=='100%': w.grid(row=0,column=1,padx=3)
+                    elif w.cget('text')=='符合視窗': w.grid(row=0,column=2,padx=3)
             edit_bar=self.canvas.master.winfo_children()[-1]
+            radio_column=button_column=0
             for w in edit_bar.winfo_children():
-                if isinstance(w,ttk.Button):
-                    w.pack_forget();w.pack(side='bottom',fill='x')
+                w.pack_forget()
+                if isinstance(w,ttk.Radiobutton):
+                    w.grid(row=0,column=radio_column,sticky='w');radio_column+=1
+                elif isinstance(w,ttk.Button):
+                    w.grid(row=1,column=button_column,pady=3);button_column+=1
+            center.winfo_children()[-1].winfo_children()[0].configure(text='拖曳移動 · 四角縮放 · 圓點旋轉')
             for w in source.winfo_children():
                 if isinstance(w,ttk.Label) and w.cget('text').startswith('例：'):w.pack_forget()
-
-    def _scroll_settings(self,parent):
-        for child in parent.winfo_children():
-            if isinstance(child,ttk.Notebook):
-                pages=[(child.nametowidget(tab),child.tab(tab,'text')) for tab in child.tabs()]
-                for page,title in pages:
-                    child.forget(page)
-                    holder=ttk.Frame(child)
-                    canvas=tk.Canvas(holder,highlightthickness=0,bg='#171a1d',width=350)
-                    scrollbar=ttk.Scrollbar(holder,orient='vertical',command=canvas.yview)
-                    canvas.configure(yscrollcommand=scrollbar.set)
-                    scrollbar.pack(side='right',fill='y');canvas.pack(fill='both',expand=True)
-                    item=canvas.create_window(0,0,anchor='nw',window=page)
-                    page.bind('<Configure>',lambda e,c=canvas:c.configure(scrollregion=c.bbox('all')))
-                    canvas.bind('<Configure>',lambda e,c=canvas,i=item:c.itemconfigure(i,width=e.width))
-                    child.add(holder,text=title)
-            else:
-                self._scroll_settings(child)
 
     def _upgrade_widgets(self,w):
         for child in w.winfo_children():

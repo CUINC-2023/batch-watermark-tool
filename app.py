@@ -156,6 +156,7 @@ class App(BaseTk):
         s.configure("Horizontal.TProgressbar", troughcolor="#24292e", background=accent)
         s.configure("TEntry", fieldbackground="#111417", foreground=fg)
         s.configure("TCombobox", fieldbackground="#111417", foreground=fg)
+        s.map("TCombobox", fieldbackground=[("readonly", "#111417")], foreground=[("readonly", fg)], selectbackground=[("readonly", "#274d70")], selectforeground=[("readonly", fg)])
 
     def _ui(self):
         top = ttk.Frame(self, style="Top.TFrame", padding=(14, 10))
@@ -256,16 +257,25 @@ class App(BaseTk):
 
         nb = ttk.Notebook(right)
         nb.pack(fill="both", expand=True)
-        logo = ttk.Frame(nb, padding=12)
-        crop = ttk.Frame(nb, padding=12)
-        text = ttk.Frame(nb, padding=12)
-        out = ttk.Frame(nb, padding=12)
-        multi = ttk.Frame(nb, padding=12)
-        nb.add(logo, text="浮水印")
-        nb.add(crop, text="裁切")
-        nb.add(text, text="文字")
-        nb.add(out, text="輸出")
-        nb.add(multi, text="多尺寸")
+        def scroll_tab(title):
+            shell = ttk.Frame(nb)
+            nb.add(shell, text=title)
+            canvas = tk.Canvas(shell, highlightthickness=0, bg="#171a1d", width=340)
+            scrollbar = ttk.Scrollbar(shell, orient="vertical", command=canvas.yview)
+            canvas.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")
+            canvas.pack(fill="both", expand=True)
+            content = ttk.Frame(canvas, padding=12)
+            item = canvas.create_window(0, 0, anchor="nw", window=content)
+            content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+            canvas.bind("<Configure>", lambda e: canvas.itemconfigure(item, width=e.width))
+            return content
+
+        logo = scroll_tab("浮水印")
+        crop = scroll_tab("裁切")
+        text = scroll_tab("文字")
+        out = scroll_tab("輸出")
+        multi = scroll_tab("多尺寸")
 
         ttk.Checkbutton(logo, text="啟用 Logo 浮水印", variable=self.wm_enabled, command=self.preview).pack(anchor="w")
         self.wm_path_label = ttk.Label(logo, text="尚未選擇浮水印", style="Muted.TLabel", wraplength=330)
@@ -934,3 +944,4 @@ class App(BaseTk):
 
 if __name__ == "__main__":
     App().mainloop()
+
