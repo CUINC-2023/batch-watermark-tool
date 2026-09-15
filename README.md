@@ -1,24 +1,22 @@
-# Batch Watermark Tool Pro v3
+# Batch Watermark Tool Pro v4.2
 
-Windows 本機離線批次圖片浮水印工具。
+Windows 免安裝圖片批次加工工具。執行 `BatchWatermarkToolProV4_2.exe`，或安裝 requirements.txt 後執行 `python launcher.py`。
 
-## 核心功能
-- 單張 / 批次圖片處理
-- 拖曳匯入圖片或資料夾
-- Logo 浮水印：大小、透明度、旋轉、九宮格、自由位置、平鋪
-- 文字浮水印
-- 可調整裁切重心
-- 常用比例：1:1、4:5、3:4、16:9、9:16、2:3、3:2
-- 百分比 / 指定長邊輸出
-- JPG / JPEG / PNG
-- 批次重新命名
-- 品牌 Preset
-- 多尺寸一次輸出
-- EXIF 保留
+## v4.2
 
-## Windows EXE
-此專案透過 GitHub Actions 自動產出免安裝 EXE：
+- 預覽工具列切換「裁切框」：保留原圖顯示，遮罩與三分線、四角等比例縮放、框內拖曳移動。裁切獨立記錄於本次工作階段的每張圖片；按重設可復原。各輸出規格依其比例重新計算相同重心與縮放量。
+- 「Logo」模式：框內拖曳位置、四角以中心等比例縮放、框外圓點旋轉。操作會轉為自由位置。平鋪模式及關閉處理效果時不顯示控制框。
+- 多尺寸規格可新增／編輯／刪除／啟用，設定名稱、比例、百分比、長邊、指定寬高、填滿／留白／縮入、格式、品質及檔案大小上限。啟用規格時取代單張輸出設定，各自建立資料夾。主預覽顯示單張設定，不代表所有多尺寸規格。
+- JPG、JPEG、PNG、WebP 輸出。PNG / WebP 保留透明度，JPEG 透明區轉白色。
+- 檔案上限以 KB（1024 bytes）計算，0 不限。JPEG / WebP 由指定品質逐步降低至符合上限；不變更像素尺寸。PNG 不做有損降色；無法符合時記錄錯誤，不寫入超標檔案。
+- 圖片列表縮圖、輪替錯誤日誌（介面可開啟）、預覽更新合併、批次重複啟動防護。
+- 輸出工作使用設定快照，背景執行緒不操作 Tkinter。取消保留已完成檔案，原子寫入避免半成品。禁止輸出覆蓋已匯入原圖。
+- 修正 EXIF 方向資訊，避免加工後再次被旋轉。
 
-`BatchWatermarkToolProV3.exe`
+保留 v4.1 的拖曳匯入、品牌與 Preset、文字浮水印、命名與原圖「加工後」子資料夾功能。原有設定目錄保持 `~/.batch_watermark_tool_v4`。裁切工作階段不寫入品牌 Preset。
 
-到 GitHub `Actions` > `Build Windows EXE` 查看建置結果與下載 Artifact。
+## 驗證與建置
+
+每次提交 main 後 GitHub Actions 執行語法檢查、影像測試、Windows Tk 操作測試、PyInstaller 建置及成品 EXE 啟動與功能 smoke test。下載 Actions 的 `BatchWatermarkToolProV4_2-Windows` Artifact。
+
+自動化涵蓋裁切拖曳、Logo 縮放與旋轉、規格編輯器開啟、縮圖、WebP 實際編碼。Windows 桌面實際檔案拖放、不同 DPI、長時間大量圖片操作仍應人工驗收。
