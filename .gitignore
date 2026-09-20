@@ -5,5 +5,8 @@ __pycache__/
 build/
 dist/
 *.spec
+!BatchWatermarkToolPro.spec
 .venv/
 venv/
+.pytest_cache/
+*.log

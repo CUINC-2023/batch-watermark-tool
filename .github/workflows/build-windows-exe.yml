@@ -3,59 +3,60 @@ name: Build Windows EXE
 on:
   workflow_dispatch:
   push:
+    branches: [main, "feature/**", "release/**"]
+  pull_request:
     branches: [main]
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    timeout-minutes: 15
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
       - name: Syntax check
-        run: python -m compileall -q app.py enhancements.py imaging.py pro.py launcher.py smoke_test.py test_imaging.py
-      - name: Image processing tests
-        run: python -m unittest test_imaging -v
-      - name: Windows UI smoke test
-        env:
-          WATERMARK_SMOKE_REPORT: source-smoke.json
-        run: |
-          python launcher.py --smoke-test
-          if ($LASTEXITCODE -ne 0) { throw 'Source smoke test failed' }
-          $r = Get-Content source-smoke.json | ConvertFrom-Json
-          if (-not $r.success -or -not $r.dnd_available) { throw 'Source verification failed' }
-      - name: Build EXE
-        run: pyinstaller --noconfirm --clean --onefile --windowed --collect-all tkinterdnd2 --name BatchWatermarkToolProV4_2 launcher.py
+        run: python -m compileall -q core models services ui workers utils main.py tests
+      - name: Core tests
+        run: pytest -q
+      - name: Pipeline smoke test
+        run: python main.py --smoke-test
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Build portable EXE
+        run: pyinstaller --noconfirm --clean BatchWatermarkToolPro.spec
       - name: Verify packaged EXE
         env:
           WATERMARK_SMOKE_REPORT: exe-smoke.json
+        shell: pwsh
         run: |
-          $p = Start-Process -FilePath dist/BatchWatermarkToolProV4_2.exe -ArgumentList '--smoke-test' -PassThru
+          $p = Start-Process -FilePath dist/BatchWatermarkToolProV5.exe -ArgumentList '--smoke-test' -PassThru
           if (-not $p.WaitForExit(90000)) { $p.Kill(); throw 'EXE smoke test timed out' }
           if ($p.ExitCode -ne 0) { throw 'EXE smoke test failed' }
-          $r = Get-Content exe-smoke.json | ConvertFrom-Json
-          if (-not $r.success -or -not $r.dnd_available) { throw 'EXE verification failed' }
-      - name: Print verification reports
-        if: always()
-        run: Get-Content *-smoke.json -ErrorAction SilentlyContinue
-      - name: Upload verification reports
+          $report = Get-Content exe-smoke.json | ConvertFrom-Json
+          if (-not $report.success -or $report.version -ne '5.0.0-alpha.1') { throw 'EXE verification report invalid' }
+      - name: Upload verification report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Windows-verification-reports
-          path: |
-            *-smoke.json
-            windows-ui.png
+          name: BatchWatermarkToolProV5-verification
+          path: exe-smoke.json
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BatchWatermarkToolProV4_2-Windows
-          path: dist/BatchWatermarkToolProV4_2.exe
+          name: BatchWatermarkToolProV5-Windows
+          path: dist/BatchWatermarkToolProV5.exe
           if-no-files-found: error

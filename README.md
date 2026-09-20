@@ -1,22 +1,71 @@
-# Batch Watermark Tool Pro v4.2
+# Batch Watermark Tool Pro v5
 
-Windows 免安裝圖片批次加工工具。執行 `BatchWatermarkToolProV4_2.exe`，或安裝 requirements.txt 後執行 `python launcher.py`。
+由 CUverse 製作的 Windows 桌面圖片批次加工工具。v5 是以 Python 3.12、PySide6、Pillow、PyInstaller 重新架構的正式版產品線；v4 原始碼保留在 `legacy_v4/`，不與新版共用 UI 或影像流程。
 
-## v4.2
+## 目前版本
 
-- 預覽工具列切換「裁切框」：保留原圖顯示，遮罩與三分線、四角等比例縮放、框內拖曳移動。裁切獨立記錄於本次工作階段的每張圖片；按重設可復原。各輸出規格依其比例重新計算相同重心與縮放量。
-- 「Logo」模式：框內拖曳位置、四角以中心等比例縮放、框外圓點旋轉。操作會轉為自由位置。平鋪模式及關閉處理效果時不顯示控制框。
-- 多尺寸規格可新增／編輯／刪除／啟用，設定名稱、比例、百分比、長邊、指定寬高、填滿／留白／縮入、格式、品質及檔案大小上限。啟用規格時取代單張輸出設定，各自建立資料夾。主預覽顯示單張設定，不代表所有多尺寸規格。
-- JPG、JPEG、PNG、WebP 輸出。PNG / WebP 保留透明度，JPEG 透明區轉白色。
-- 檔案上限以 KB（1024 bytes）計算，0 不限。JPEG / WebP 由指定品質逐步降低至符合上限；不變更像素尺寸。PNG 不做有損降色；無法符合時記錄錯誤，不寫入超標檔案。
-- 圖片列表縮圖、輪替錯誤日誌（介面可開啟）、預覽更新合併、批次重複啟動防護。
-- 輸出工作使用設定快照，背景執行緒不操作 Tkinter。取消保留已完成檔案，原子寫入避免半成品。禁止輸出覆蓋已匯入原圖。
-- 修正 EXIF 方向資訊，避免加工後再次被旋轉。
+`5.0.0-alpha.1`（第一階段可執行核心框架）
 
-保留 v4.1 的拖曳匯入、品牌與 Preset、文字浮水印、命名與原圖「加工後」子資料夾功能。原有設定目錄保持 `~/.batch_watermark_tool_v4`。裁切工作階段不寫入品牌 Preset。
+已完成：
 
-## 驗證與建置
+- PySide6 三欄桌面介面：左側縮圖、中央互動預覽、右側設定、底部固定導出列。
+- 單張、多張、資料夾與拖曳匯入，支援 JPG、JPEG、PNG、WebP。
+- 原圖／加工後切換與預覽更新合併。
+- 可拖曳、四角調整的正規化視覺裁切框。
+- Logo 九宮格、自由座標、平鋪、縮放、旋轉與透明度的共用影像核心。
+- 文字浮水印、百分比尺寸、指定長邊、輸出品質與檔案大小限制。
+- 指定輸出資料夾、原圖旁建立「加工後」、保留資料夾結構。
+- EXIF／ICC Profile 傳遞、原子寫入、錯誤隔離、背景導出、Progress／Cancel。
+- Preset 與多尺寸輸出的資料模型及服務層基礎。
+- CUverse 官方 Logo 與「由 CUverse 製作」來源標示（不會加入使用者輸出圖片）。
+- Python 3.12 測試與 Windows 免安裝 EXE GitHub Actions 流程。
 
-每次提交 main 後 GitHub Actions 執行語法檢查、影像測試、Windows Tk 操作測試、PyInstaller 建置及成品 EXE 啟動與功能 smoke test。下載 Actions 的 `BatchWatermarkToolProV4_2-Windows` Artifact。
+下一階段：
 
-自動化涵蓋裁切拖曳、Logo 縮放與旋轉、規格編輯器開啟、縮圖、WebP 實際編碼。Windows 桌面實際檔案拖放、不同 DPI、長時間大量圖片操作仍應人工驗收。
+- 中央預覽的 Logo 四角拖曳縮放、直接拖曳定位與旋轉控制點。
+- Brand Preset／一般加工 Preset 的完整管理介面。
+- 多尺寸規格編輯器、批次重新命名編輯器。
+- 更完整的輸出摘要、錯誤日誌檢視器與大量圖片效能驗收。
+
+## 架構
+
+```text
+ui/        PySide6 介面與互動預覽
+core/      Preview／Export 共用 Image Pipeline
+models/    設定與圖片資料模型
+services/  匯入、輸出、Preset、錯誤日誌
+workers/   背景批次工作
+utils/     路徑、版本與共用工具
+assets/    CUverse 製作來源品牌素材
+tests/     核心與整合測試
+legacy_v4/ 舊版封存
+```
+
+## 本機執行
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install -r requirements-dev.txt
+.venv/Scripts/python main.py
+```
+
+測試：
+
+```bash
+.venv/Scripts/python -m compileall -q core models services ui workers utils main.py tests
+.venv/Scripts/pytest -q
+.venv/Scripts/python main.py --smoke-test
+```
+
+## Windows EXE
+
+推送 `main`、`feature/**` 或 `release/**` 後，GitHub Actions 會：
+
+1. 使用 Python 3.12 執行語法檢查、pytest 與 Pipeline smoke test。
+2. 在 `windows-latest` 以 PyInstaller 建置 `BatchWatermarkToolProV5.exe`。
+3. 實際啟動封裝後 EXE 執行 smoke test。
+4. 上傳 `BatchWatermarkToolProV5-Windows` Artifact。
+
+## 品牌來源
+
+Batch Watermark Tool Pro 由 CUverse 製作。CUverse 品牌標示只存在於應用程式介面與「關於」資訊，不會自動套用到加工圖片。
